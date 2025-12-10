@@ -21,7 +21,7 @@ import java.net.URLEncoder
  * Generic HTTP client for making API requests.
  *
  * Features:
- * - Support for GET, POST, PUT, DELETE methods
+ * - Support for GET, POST, PUT, PATCH, DELETE methods
  * - JSON serialization/deserialization with Jackson
  * - Rate limit retry with exponential backoff
  * - Comprehensive error handling with [SdkException]
@@ -101,6 +101,26 @@ open class HttpClient(
     ): T {
         val url = overrideBaseUrl ?: baseUrl
         val request = buildRequest(url, endpoint, "PUT", body, null)
+        return execute(request, object : TypeReference<T>() {})
+    }
+
+    /**
+     * Makes a PATCH request to the API.
+     *
+     * @param T Response type
+     * @param endpoint API endpoint path
+     * @param body Request body object
+     * @param overrideBaseUrl Optional override for base URL
+     * @return Parsed response of type T
+     * @throws SdkException if the request fails
+     */
+    inline fun <reified T> patch(
+        endpoint: String,
+        body: Any? = null,
+        overrideBaseUrl: String? = null
+    ): T {
+        val url = overrideBaseUrl ?: baseUrl
+        val request = buildRequest(url, endpoint, "PATCH", body, null)
         return execute(request, object : TypeReference<T>() {})
     }
 

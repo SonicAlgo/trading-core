@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.sonicalgo"
-version = "1.0.0"
+version = "1.1.0"
 
 repositories {
     mavenCentral()
@@ -37,7 +37,7 @@ mavenPublishing {
     coordinates(
         groupId = "io.github.sonicalgo",
         artifactId = "trading-core",
-        version = "1.0.0",
+        version = "1.1.0",
     )
 
     pom {
