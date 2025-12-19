@@ -12,12 +12,12 @@ Core library for trading SDKs providing reusable HTTP and WebSocket client infra
 
 ### Gradle (Kotlin DSL)
 ```kotlin
-implementation("io.github.sonicalgo:trading-core:1.1.0")
+implementation("io.github.sonicalgo:trading-core:1.1.1")
 ```
 
 ### Gradle (Groovy)
 ```groovy
-implementation 'io.github.sonicalgo:trading-core:1.1.0'
+implementation 'io.github.sonicalgo:trading-core:1.1.1'
 ```
 
 ### Maven
@@ -25,7 +25,7 @@ implementation 'io.github.sonicalgo:trading-core:1.1.0'
 <dependency>
     <groupId>io.github.sonicalgo</groupId>
     <artifactId>trading-core</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
 </dependency>
 ```
 

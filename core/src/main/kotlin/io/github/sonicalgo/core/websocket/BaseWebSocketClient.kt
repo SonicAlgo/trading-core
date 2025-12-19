@@ -77,9 +77,11 @@ abstract class BaseWebSocketClient(
         try {
             val wsUrl = getWebSocketUrl()
 
-            val request = Request.Builder()
-                .url(wsUrl)
-                .build()
+            val requestBuilder = Request.Builder().url(wsUrl)
+            getHeaders().forEach { (key, value) ->
+                requestBuilder.header(key, value)
+            }
+            val request = requestBuilder.build()
 
             webSocket = httpClient.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
@@ -246,6 +248,14 @@ abstract class BaseWebSocketClient(
      * Called when an error occurs.
      */
     protected abstract fun onWebSocketError(error: Throwable)
+
+    /**
+     * Returns headers to include in the WebSocket handshake request.
+     * Override to add custom headers like Authorization.
+     *
+     * @return Map of header name to value (default: empty)
+     */
+    protected open fun getHeaders(): Map<String, String> = emptyMap()
 
     /**
      * Sends a binary message through the WebSocket.

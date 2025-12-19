@@ -1,5 +1,6 @@
 package io.github.sonicalgo.core.client
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -300,9 +301,11 @@ open class HttpClient(
          * - JavaTimeModule for java.time.* handling
          * - Tolerant deserialization (ignores unknown properties)
          * - Unknown enum values deserialize as null
+         * - NON_NULL serialization (null fields are omitted from JSON)
          */
         val objectMapper: ObjectMapper = jacksonObjectMapper()
             .registerModule(JavaTimeModule())
+            .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL)
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             .configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true)
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
