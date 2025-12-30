@@ -16,7 +16,9 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.io.Closeable
+import java.io.InputStreamReader
 import java.net.URLEncoder
+import java.util.zip.GZIPInputStream
 
 /**
  * Generic HTTP client for making API requests.
@@ -174,6 +176,155 @@ open class HttpClient(
             .get()
             .build()
         return executeRaw(request)
+    }
+
+    // ========== File Download Methods ==========
+    // These use fileDownloadClient (no auth, longer timeouts) for public resources
+
+    private val fileDownloadClient get() = clientProvider.fileDownloadClient
+
+    /**
+     * Downloads and parses JSON from a public URL (no authentication).
+     *
+     * Uses [fileDownloadClient] with longer timeouts suitable for large files.
+     *
+     * @param T The type to deserialize to
+     * @param url The full URL to download from
+     * @return Parsed object of type T
+     * @throws SdkException if download or parsing fails
+     */
+    inline fun <reified T> downloadJson(url: String): T {
+        return downloadJson(url, object : TypeReference<T>() {})
+    }
+
+    /**
+     * Downloads and parses JSON from a public URL using TypeReference.
+     *
+     * @param T The type to deserialize to
+     * @param url The full URL to download from
+     * @param typeRef TypeReference for the target type
+     * @return Parsed object of type T
+     * @throws SdkException if download or parsing fails
+     */
+    fun <T> downloadJson(url: String, typeRef: TypeReference<T>): T {
+        val content = downloadString(url)
+        return try {
+            objectMapper.readValue(content, typeRef)
+        } catch (e: Exception) {
+            throw SdkException("Failed to parse JSON from $url: ${e.message}", null, e)
+        }
+    }
+
+    /**
+     * Downloads and parses GZIP-compressed JSON from a public URL.
+     *
+     * Uses [fileDownloadClient] with longer timeouts suitable for large files.
+     *
+     * @param T The type to deserialize to
+     * @param url The full URL to download from
+     * @return Parsed object of type T
+     * @throws SdkException if download or parsing fails
+     */
+    inline fun <reified T> downloadGzipJson(url: String): T {
+        return downloadGzipJson(url, object : TypeReference<T>() {})
+    }
+
+    /**
+     * Downloads and parses GZIP-compressed JSON from a public URL using TypeReference.
+     *
+     * @param T The type to deserialize to
+     * @param url The full URL to download from
+     * @param typeRef TypeReference for the target type
+     * @return Parsed object of type T
+     * @throws SdkException if download or parsing fails
+     */
+    fun <T> downloadGzipJson(url: String, typeRef: TypeReference<T>): T {
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        val response = try {
+            fileDownloadClient.newCall(request).execute()
+        } catch (e: Exception) {
+            throw SdkException("Failed to download from $url: ${e.message}", null, e)
+        }
+
+        if (!response.isSuccessful) {
+            val statusCode = response.code
+            response.close()
+            throw SdkException("Failed to download from $url: HTTP $statusCode - ${response.message}", statusCode)
+        }
+
+        return try {
+            val inputStream = response.body.byteStream()
+            GZIPInputStream(inputStream).use { gzipStream ->
+                InputStreamReader(gzipStream, Charsets.UTF_8).use { reader ->
+                    objectMapper.readValue(reader, typeRef)
+                }
+            }
+        } catch (e: SdkException) {
+            throw e
+        } catch (e: Exception) {
+            throw SdkException("Failed to parse GZIP JSON from $url: ${e.message}", null, e)
+        } finally {
+            response.close()
+        }
+    }
+
+    /**
+     * Downloads raw bytes from a public URL.
+     *
+     * Uses [fileDownloadClient] with longer timeouts suitable for large files.
+     *
+     * @param url The full URL to download from
+     * @return The downloaded bytes
+     * @throws SdkException if download fails
+     */
+    fun downloadBytes(url: String): ByteArray {
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        val response = try {
+            fileDownloadClient.newCall(request).execute()
+        } catch (e: Exception) {
+            throw SdkException("Failed to download from $url: ${e.message}", null, e)
+        }
+
+        return response.use {
+            if (!it.isSuccessful) {
+                throw SdkException("Failed to download from $url: HTTP ${it.code} - ${it.message}", it.code)
+            }
+            it.body.bytes()
+        }
+    }
+
+    /**
+     * Downloads content as a string from a public URL.
+     *
+     * Uses [fileDownloadClient] with longer timeouts suitable for large files.
+     *
+     * @param url The full URL to download from
+     * @return The downloaded content as string
+     * @throws SdkException if download fails
+     */
+    fun downloadString(url: String): String {
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        val response = try {
+            fileDownloadClient.newCall(request).execute()
+        } catch (e: Exception) {
+            throw SdkException("Failed to download from $url: ${e.message}", null, e)
+        }
+
+        return response.use {
+            if (!it.isSuccessful) {
+                throw SdkException("Failed to download from $url: HTTP ${it.code} - ${it.message}", it.code)
+            }
+            it.body.string()
+        }
     }
 
     protected fun executeRaw(request: Request): String {

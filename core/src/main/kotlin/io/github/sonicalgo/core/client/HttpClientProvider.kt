@@ -79,6 +79,32 @@ open class HttpClientProvider(
     @Volatile
     private var _wsHttpClient: OkHttpClient? = null
 
+    @Volatile
+    private var _fileDownloadClient: OkHttpClient? = null
+
+    /**
+     * OkHttpClient for downloading public files without authentication.
+     *
+     * Configured with longer timeouts for large files:
+     * - Connect timeout: 30 seconds
+     * - Read timeout: 60 seconds
+     *
+     * No authentication headers are added since this is for public resources.
+     */
+    val fileDownloadClient: OkHttpClient
+        get() {
+            val current = _fileDownloadClient
+            if (current != null) return current
+
+            synchronized(this) {
+                return _fileDownloadClient ?: OkHttpClient.Builder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(60, TimeUnit.SECONDS)
+                    .build()
+                    .also { _fileDownloadClient = it }
+            }
+        }
+
     /**
      * OkHttpClient configured for WebSocket connections.
      *
@@ -114,6 +140,9 @@ open class HttpClientProvider(
 
             _wsHttpClient?.shutdownGracefully()
             _wsHttpClient = null
+
+            _fileDownloadClient?.shutdownGracefully()
+            _fileDownloadClient = null
         }
     }
 
